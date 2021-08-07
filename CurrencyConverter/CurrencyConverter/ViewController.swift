@@ -64,18 +64,21 @@ class ViewController: UIViewController {
     }
     
     func updateAmounts(_ direction: Direction) {
+        let fromTextField: UITextField!
+        let toTextField: UITextField!
+        let rate = exchange.getRate(currencies[currencyPicker.selectedRow(inComponent: 0)])
+        
         if direction == .srcToDest {
-            guard let text = sourceAmountTextField.text else { return }
-            
-            if let currentValue = Double(text) {
-                destAmountTextField.text = String(format: "%.2f", currentValue * exchange.getRate(currencies[currencyPicker.selectedRow(inComponent: 0)]))
-            }
+            fromTextField = sourceAmountTextField
+            toTextField = destAmountTextField
         } else {
-            guard let text = destAmountTextField.text else { return }
-            
-            if let currentValue = Double(text) {
-                sourceAmountTextField.text = String(format: "%.2f", currentValue / exchange.getRate(currencies[currencyPicker.selectedRow(inComponent: 0)]))
-            }
+            fromTextField = destAmountTextField
+            toTextField = sourceAmountTextField
+        }
+
+        guard let text = fromTextField.text else { return }
+        if let currentValue = Double(text) {
+            toTextField.text = String(format: "%.2f", direction == .srcToDest ? currentValue * rate : currentValue / rate)
         }
     }
 }
