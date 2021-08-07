@@ -13,20 +13,39 @@ class ViewController: UIViewController {
     @IBOutlet weak var destAmountTextField: UITextField!
     @IBOutlet weak var destAmountLabel: UILabel!
     
-    let currencies = ["EUR",
-                      "RUB",
-                      "GBP",
-                      "CNY"]
-    
+    var currencies: [String] = []
+    var exchange: Exchange!
     
     override func viewDidLoad() {
         super.viewDidLoad()
         currencyPicker.delegate = self
         currencyPicker.dataSource = self
-        updateDestAmountLabel(0)
+        getCurrencies()
     }
     private func updateDestAmountLabel(_ row: Int) {
         destAmountLabel.text = "\(currencies[row]) amount:"
+    }
+    
+    func getCurrencies() {
+        guard let url = URL(string: "https://openexchangerates.org/api/latest.json?app_id=caf02b30e07d432c9ca85141f941bed3") else { return }
+        URLSession.shared.dataTask(with: url) { data, response, error in
+            guard let data = data, let response = response else {
+                print(error?.localizedDescription ?? "No error discription")
+                return
+            }
+            print(response)
+            do {
+                self.exchange = try JSONDecoder().decode(Exchange.self , from: data)
+                self.currencies = self.exchange.gerCurrencies()
+                DispatchQueue.main.async {
+                    self.currencyPicker.reloadAllComponents()
+                    self.updateDestAmountLabel(0)
+                }
+            } catch let error {
+                print(error.localizedDescription)
+            }
+            
+        } .resume()
     }
 
 }
