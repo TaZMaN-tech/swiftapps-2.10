@@ -14,6 +14,19 @@ struct Exchange: Decodable {
     func gerCurrencies() -> [String] {
         ["EUR", "RUB", "GBP", "CNY"]
     }
+    
+    func getRate(_ currency: String) -> Double {
+        switch currency {
+        case "EUR":
+            return rates.EUR
+        case "RUB":
+            return rates.RUB
+        case "GBP":
+            return rates.GBP
+        default:
+            return rates.CNY
+        }
+    }
 }
 
 struct ExchangeRates: Decodable {
