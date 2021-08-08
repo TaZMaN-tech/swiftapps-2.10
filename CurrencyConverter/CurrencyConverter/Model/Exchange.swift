@@ -12,20 +12,14 @@ struct Exchange: Decodable {
     let rates: ExchangeRates
     
     func gerCurrencies() -> [String] {
-        ["EUR", "RUB", "GBP", "CNY"]
+        Mirror(reflecting: rates).children.map {$0.label ?? ""}
     }
     
     func getRate(_ currency: String) -> Double {
-        switch currency {
-        case "EUR":
-            return rates.EUR
-        case "RUB":
-            return rates.RUB
-        case "GBP":
-            return rates.GBP
-        default:
-            return rates.CNY
+        guard let value = Mirror(reflecting: rates).children.filter({$0.label == currency})[0].value as? Double else {
+            return 0
         }
+        return value
     }
 }
 

@@ -7,27 +7,33 @@
 
 import UIKit
 
-class ViewController: UIViewController {
+class MainViewController: UIViewController {
     @IBOutlet weak var currencyPicker: UIPickerView!
     @IBOutlet weak var sourceAmountTextField: UITextField!
     @IBOutlet weak var destAmountTextField: UITextField!
     @IBOutlet weak var destAmountLabel: UILabel!
     
-    var currencies: [String] = []
-    var exchange: Exchange!
-    var lastDirection: Direction = .srcToDest
+    private var currencies: [String] = []
+    private var exchange: Exchange!
+    private var lastDirection: Direction = .srcToDest
+    
+    enum Direction {
+        case srcToDest
+        case destToSrc
+    }
     
     override func viewDidLoad() {
         super.viewDidLoad()
         currencyPicker.delegate = self
         currencyPicker.dataSource = self
         getCurrencies()
+        hideKeyboardWhenTappedAround()
     }
     private func updateDestAmountLabel(_ row: Int) {
         destAmountLabel.text = "\(currencies[row]) amount:"
     }
     
-    func getCurrencies() {
+    private func getCurrencies() {
         guard let url = URL(string: "https://openexchangerates.org/api/latest.json?app_id=caf02b30e07d432c9ca85141f941bed3") else { return }
         URLSession.shared.dataTask(with: url) { data, response, error in
             guard let data = data, let response = response else {
@@ -49,21 +55,7 @@ class ViewController: UIViewController {
         } .resume()
     }
     
-    @IBAction func sourceAmountEditingChanged() {
-        updateAmounts(.srcToDest)
-        lastDirection = .srcToDest
-    }
-    @IBAction func destAmountEditingChanged() {
-        updateAmounts(.destToSrc)
-        lastDirection = .destToSrc
-    }
-    
-    enum Direction {
-        case srcToDest
-        case destToSrc
-    }
-    
-    func updateAmounts(_ direction: Direction) {
+    private func updateAmounts(_ direction: Direction) {
         let fromTextField: UITextField!
         let toTextField: UITextField!
         let rate = exchange.getRate(currencies[currencyPicker.selectedRow(inComponent: 0)])
@@ -81,9 +73,18 @@ class ViewController: UIViewController {
             toTextField.text = String(format: "%.2f", direction == .srcToDest ? currentValue * rate : currentValue / rate)
         }
     }
+    
+    @IBAction func sourceAmountEditingChanged() {
+        updateAmounts(.srcToDest)
+        lastDirection = .srcToDest
+    }
+    @IBAction func destAmountEditingChanged() {
+        updateAmounts(.destToSrc)
+        lastDirection = .destToSrc
+    }
 }
 
-extension ViewController: UIPickerViewDelegate, UIPickerViewDataSource {
+extension MainViewController: UIPickerViewDelegate, UIPickerViewDataSource {
     func numberOfComponents(in pickerView: UIPickerView) -> Int {
         1
     }
@@ -100,5 +101,16 @@ extension ViewController: UIPickerViewDelegate, UIPickerViewDataSource {
         updateDestAmountLabel(row)
         updateAmounts(lastDirection)
     }
+}
+
+extension MainViewController {
+    func hideKeyboardWhenTappedAround() {
+        let tap = UITapGestureRecognizer(target: self, action: #selector(MainViewController.dismissKeyboard))
+        tap.cancelsTouchesInView = false
+        view.addGestureRecognizer(tap)
+    }
     
+    @objc func dismissKeyboard() {
+        view.endEditing(true)
+    }
 }
