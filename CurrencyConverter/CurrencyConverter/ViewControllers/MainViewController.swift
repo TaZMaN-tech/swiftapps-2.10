@@ -35,29 +35,14 @@ class MainViewController: UIViewController {
     }
     
     private func getCurrencies() {
-        AF.request("https://openexchangerates.org/api/latest.json?app_id=caf02b30e07d432c9ca85141f941bed3", method: .get)
-            .validate()
-            .responseJSON { dataResponse in
-                switch dataResponse.result {
-                case .success(let value):
-                    guard let exchange = value as? [String: Any] else { return }
-                    guard let rates = exchange["rates"] as? [String: Any] else { return }
-                    let exchangeRates = ExchangeRates(
-                        EUR: rates["EUR"] as? Double ?? 0,
-                        RUB: rates["RUB"] as? Double ?? 0,
-                        GBP: rates["GBP"] as? Double ?? 0,
-                        CNY: rates["CNY"] as? Double ?? 0
-                    )
-                    self.exchange = Exchange(base: exchange["base"] as? String ?? "", rates: exchangeRates)
-                    self.currencies = self.exchange.gerCurrencies()
-                    DispatchQueue.main.async {
-                        self.currencyPicker.reloadAllComponents()
-                        self.updateDestAmountLabel(0)
-                    }
-                case .failure(let error):
-                    print(error)
-                }
+        NetworkManager.shared.fetchExchange() { exchange in
+            self.exchange = exchange
+            self.currencies = self.exchange.gerCurrencies()
+            DispatchQueue.main.async {
+                self.currencyPicker.reloadAllComponents()
+                self.updateDestAmountLabel(0)
             }
+        }
     }
     
     private func updateAmounts(_ direction: Direction) {
@@ -78,6 +63,7 @@ class MainViewController: UIViewController {
             toTextField.text = String(format: "%.2f", direction == .srcToDest ? currentValue * rate : currentValue / rate)
         }
     }
+    
     
     @IBAction func sourceAmountEditingChanged() {
         updateAmounts(.srcToDest)
