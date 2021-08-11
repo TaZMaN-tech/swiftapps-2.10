@@ -6,6 +6,7 @@
 //
 
 import UIKit
+import Alamofire
 
 class MainViewController: UIViewController {
     @IBOutlet weak var currencyPicker: UIPickerView!
@@ -34,25 +35,29 @@ class MainViewController: UIViewController {
     }
     
     private func getCurrencies() {
-        guard let url = URL(string: "https://openexchangerates.org/api/latest.json?app_id=caf02b30e07d432c9ca85141f941bed3") else { return }
-        URLSession.shared.dataTask(with: url) { data, response, error in
-            guard let data = data, let response = response else {
-                print(error?.localizedDescription ?? "No error discription")
-                return
-            }
-            print(response)
-            do {
-                self.exchange = try JSONDecoder().decode(Exchange.self , from: data)
-                self.currencies = self.exchange.gerCurrencies()
-                DispatchQueue.main.async {
-                    self.currencyPicker.reloadAllComponents()
-                    self.updateDestAmountLabel(0)
+        AF.request("https://openexchangerates.org/api/latest.json?app_id=caf02b30e07d432c9ca85141f941bed3", method: .get)
+            .validate()
+            .responseJSON { dataResponse in
+                switch dataResponse.result {
+                case .success(let value):
+                    guard let exchange = value as? [String: Any] else { return }
+                    guard let rates = exchange["rates"] as? [String: Any] else { return }
+                    let exchangeRates = ExchangeRates(
+                        EUR: rates["EUR"] as? Double ?? 0,
+                        RUB: rates["RUB"] as? Double ?? 0,
+                        GBP: rates["GBP"] as? Double ?? 0,
+                        CNY: rates["CNY"] as? Double ?? 0
+                    )
+                    self.exchange = Exchange(base: exchange["base"] as? String ?? "", rates: exchangeRates)
+                    self.currencies = self.exchange.gerCurrencies()
+                    DispatchQueue.main.async {
+                        self.currencyPicker.reloadAllComponents()
+                        self.updateDestAmountLabel(0)
+                    }
+                case .failure(let error):
+                    print(error)
                 }
-            } catch let error {
-                print(error.localizedDescription)
             }
-            
-        } .resume()
     }
     
     private func updateAmounts(_ direction: Direction) {
