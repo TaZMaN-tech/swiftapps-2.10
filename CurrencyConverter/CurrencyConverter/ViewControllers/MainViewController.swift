@@ -8,6 +8,11 @@
 import UIKit
 import Alamofire
 
+enum Direction {
+    case srcToDest
+    case destToSrc
+}
+
 class MainViewController: UIViewController {
     @IBOutlet weak var currencyPicker: UIPickerView!
     @IBOutlet weak var sourceAmountTextField: UITextField!
@@ -17,11 +22,6 @@ class MainViewController: UIViewController {
     private var currencies: [String] = []
     private var exchange: Exchange!
     private var lastDirection: Direction = .srcToDest
-    
-    enum Direction {
-        case srcToDest
-        case destToSrc
-    }
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -37,7 +37,7 @@ class MainViewController: UIViewController {
     private func getCurrencies() {
         NetworkManager.shared.fetchExchange() { exchange in
             self.exchange = exchange
-            self.currencies = self.exchange.gerCurrencies()
+            self.currencies = self.gerCurrencies()
             DispatchQueue.main.async {
                 self.currencyPicker.reloadAllComponents()
                 self.updateDestAmountLabel(0)
@@ -48,7 +48,7 @@ class MainViewController: UIViewController {
     private func updateAmounts(_ direction: Direction) {
         let fromTextField: UITextField!
         let toTextField: UITextField!
-        let rate = exchange.getRate(currencies[currencyPicker.selectedRow(inComponent: 0)])
+        let rate = getRate(currencies[currencyPicker.selectedRow(inComponent: 0)])
         
         if direction == .srcToDest {
             fromTextField = sourceAmountTextField
@@ -64,6 +64,16 @@ class MainViewController: UIViewController {
         }
     }
     
+    func gerCurrencies() -> [String] {
+        Mirror(reflecting: exchange.rates).children.map {$0.label ?? ""}
+    }
+    
+    func getRate(_ currency: String) -> Double {
+        guard let value = Mirror(reflecting: exchange.rates).children.filter({$0.label == currency})[0].value as? Double else {
+            return 0
+        }
+        return value
+    }
     
     @IBAction func sourceAmountEditingChanged() {
         updateAmounts(.srcToDest)
